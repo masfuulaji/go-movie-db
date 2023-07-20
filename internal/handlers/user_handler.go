@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/masfuulaji/go-movie-db/internal/models"
 	"github.com/masfuulaji/go-movie-db/internal/repositories"
@@ -34,7 +36,7 @@ func CreateUserHandler(c *gin.Context) {
 }
 
 func GetUserHandler(c *gin.Context) {
-	userID := c.Param("userID")
+	userID := c.Param("user_id")
 
 	user, err := repositories.GetUserById(userID)
 	if err != nil {
@@ -47,10 +49,9 @@ func GetUserHandler(c *gin.Context) {
 
 func UpdateUserHandler(c *gin.Context) {
 	var user models.User
-	userID := c.Param("userID")
+	userID := c.Param("user_id")
 
 	err := c.BindJSON(&user)
-
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
@@ -63,20 +64,20 @@ func UpdateUserHandler(c *gin.Context) {
 			return
 		}
 
-        user.Password = string(hashedPassword)
+		user.Password = string(hashedPassword)
 	}
 
-	user, err = repositories.UpdateUser(userID, user)
+	result, err := repositories.UpdateUser(userID, user)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, user)
+	c.JSON(200, result)
 }
 
 func DeleteUserHandler(c *gin.Context) {
-	userID := c.Param("userID")
+	userID := c.Param("user_id")
 
 	err := repositories.DeleteUser(userID)
 	if err != nil {
@@ -88,7 +89,9 @@ func DeleteUserHandler(c *gin.Context) {
 }
 
 func GetAllUserHandler(c *gin.Context) {
-	users, err := repositories.GetAllUser()
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	users, err := repositories.GetAllUser(page, limit)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
