@@ -2,12 +2,18 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/masfuulaji/go-movie-db/internal/config"
 	"github.com/masfuulaji/go-movie-db/internal/handlers"
+	"github.com/masfuulaji/go-movie-db/internal/helper"
 	"github.com/masfuulaji/go-movie-db/internal/middleware"
+	"github.com/masfuulaji/go-movie-db/internal/repositories"
 )
 
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
+    db := config.InitDB()
+
+    router.Use(helper.ErrorHandler())
 
 	home := router.Group("/")
 	{
@@ -18,25 +24,28 @@ func SetupRouter() *gin.Engine {
 		})
 	}
 
+    authHandler := handlers.NewAuthHandler(repositories.NewUserRepository(db))
 	login := router.Group("/auth")
 	{
-		login.POST("/login", handlers.LoginHandler)
+		login.POST("/login", authHandler.LoginHandler)
 	}
 
 	logout := router.Group("/auth")
 	logout.Use(middleware.AuthMiddleware())
 	{
-		logout.POST("/logout", handlers.LogoutHandler)
+		logout.POST("/logout", authHandler.LogoutHandler)
 	}
 
+
+    userHandler := handlers.NewUserHandler(repositories.NewUserRepository(db))
 	user := router.Group("/user")
 	// user.Use(middleware.AuthMiddleware())
 	{
-		user.GET("/", handlers.GetAllUserHandler)
-		user.POST("/", handlers.CreateUserHandler)
-		user.GET("/:userID", handlers.GetUserHandler)
-		user.PUT("/:userID", handlers.UpdateUserHandler)
-		user.DELETE("/:userID", handlers.DeleteUserHandler)
+		user.GET("/", userHandler.GetAllUserHandler)
+		user.POST("/", userHandler.CreateUserHandler)
+		user.GET("/:userID", userHandler.GetUserHandler)
+		user.PUT("/:userID", userHandler.UpdateUserHandler)
+		user.DELETE("/:userID", userHandler.DeleteUserHandler)
 	}
 
     collection := router.Group("/collection")

@@ -9,7 +9,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func CreateUserHandler(c *gin.Context) {
+type UserHandler struct {
+    userRepo repositories.UserRepository
+}
+
+func NewUserHandler(repo repositories.UserRepository) *UserHandler {
+    return &UserHandler{userRepo: repo}
+}
+
+func (h *UserHandler) CreateUserHandler(c *gin.Context) {
 	var user models.User
 
 	err := c.BindJSON(&user)
@@ -26,7 +34,7 @@ func CreateUserHandler(c *gin.Context) {
 
 	user.Password = string(hashedPassword)
 
-	err = repositories.CreateUser(user)
+	err = h.userRepo.CreateUser(user)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
@@ -35,10 +43,10 @@ func CreateUserHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "User created"})
 }
 
-func GetUserHandler(c *gin.Context) {
+func (h *UserHandler) GetUserHandler(c *gin.Context) {
 	userID := c.Param("user_id")
 
-	user, err := repositories.GetUserById(userID)
+	user, err := h.userRepo.GetUserById(userID)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
@@ -47,7 +55,7 @@ func GetUserHandler(c *gin.Context) {
 	c.JSON(200, user)
 }
 
-func UpdateUserHandler(c *gin.Context) {
+func (h *UserHandler) UpdateUserHandler(c *gin.Context) {
 	var user models.User
 	userID := c.Param("user_id")
 
@@ -67,7 +75,7 @@ func UpdateUserHandler(c *gin.Context) {
 		user.Password = string(hashedPassword)
 	}
 
-	result, err := repositories.UpdateUser(userID, user)
+	result, err := h.userRepo.UpdateUser(userID, user)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
@@ -76,10 +84,10 @@ func UpdateUserHandler(c *gin.Context) {
 	c.JSON(200, result)
 }
 
-func DeleteUserHandler(c *gin.Context) {
+func (h *UserHandler) DeleteUserHandler(c *gin.Context) {
 	userID := c.Param("user_id")
 
-	err := repositories.DeleteUser(userID)
+	err := h.userRepo.DeleteUser(userID)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
@@ -88,10 +96,10 @@ func DeleteUserHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "User deleted"})
 }
 
-func GetAllUserHandler(c *gin.Context) {
+func (h *UserHandler) GetAllUserHandler(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
-	users, err := repositories.GetAllUser(page, limit)
+	users, err := h.userRepo.GetAllUser(page, limit)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return

@@ -3,9 +3,9 @@ package repositories
 import (
 	"math"
 
-	"github.com/masfuulaji/go-movie-db/internal/config"
 	"github.com/masfuulaji/go-movie-db/internal/models"
 	"github.com/masfuulaji/go-movie-db/internal/response"
+	"gorm.io/gorm"
 )
 
 var (
@@ -13,52 +13,71 @@ var (
 	users []models.User
 )
 
-func CreateUser(user models.User) error {
-	return config.DB.Create(&user).Error
+type UserRepository interface {
+	CreateUser(user models.User) error
+	GetAllUser(page, limit int) (response.PaginatedResponse, error)
+	GetUserById(userID string) (response.APIUser, error)
+	GetUserByEmail(email string) (models.User, error)
+	UpdateUser(userID string, user models.User) (models.User, error)
+	DeleteUser(userID string) error
 }
 
-func GetUserById(userID string) (response.APIUser, error) {
+type UserRepositoryImpl struct {
+	db *gorm.DB
+}
+
+func NewUserRepository(db *gorm.DB) UserRepository {
+	return &UserRepositoryImpl{
+		db: db,
+	}
+}
+
+func (c *UserRepositoryImpl) CreateUser(user models.User) error {
+	return c.db.Create(&user).Error
+}
+
+func (c *UserRepositoryImpl) GetUserById(userID string) (response.APIUser, error) {
 	var result response.APIUser
-	return result, config.DB.Model(&user).First(&result, userID).Error
+	return result, c.db.Model(&user).First(&result, userID).Error
 }
 
-func GetUserByEmail(email string) (models.User, error) {
-	return user, config.DB.Where("email = ?", email).First(&user).Error
+func (c *UserRepositoryImpl) GetUserByEmail(email string) (models.User, error) {
+	return user, c.db.Where("email = ?", email).First(&user).Error
 }
 
-func UpdateUser(userID string, user models.User) (models.User, error) {
+func (c *UserRepositoryImpl) UpdateUser(userID string, user models.User) (models.User, error) {
 	var updatedUser models.User
-	err := config.DB.Model(&user).Where("id = ?", userID).Updates(user).Error
+	err := c.db.Model(&user).Where("id = ?", userID).Updates(user).Error
 	return updatedUser, err
 }
 
-func DeleteUser(userID string) error {
-	return config.DB.Delete(&models.User{}, userID).Error
+func (c *UserRepositoryImpl) DeleteUser(userID string) error {
+	return c.db.Delete(&models.User{}, userID).Error
 }
 
-func GetAllUser(page, limit int) (response.PaginatedResponse, error) {
+func (c *UserRepositoryImpl) GetAllUser(page, limit int) (response.PaginatedResponse, error) {
 	var results []response.APIUser
-    var totalItems int64
+	var totalItems int64
 
-    offset := (page - 1) * limit
-    err := config.DB.Model(&users).Offset(offset).Limit(limit).Find(&results).Error
-    if err != nil {
-        return response.PaginatedResponse{}, err
-    }
+	offset := (page - 1) * limit
+	err := c.db.Model(&users).Offset(offset).Limit(limit).Find(&results).Error
+	if err != nil {
+		return response.PaginatedResponse{}, err
+	}
 
-    err = config.DB.Model(&users).Count(&totalItems).Error
-    if err != nil {
-        return response.PaginatedResponse{}, err
-    }
+	err = c.db.Model(&users).Count(&totalItems).Error
+	if err != nil {
+		return response.PaginatedResponse{}, err
+	}
 
-    totalPage := int(math.Ceil(float64(totalItems) / float64(limit)))
+	totalPage := int(math.Ceil(float64(totalItems) / float64(limit)))
 
-    pagination := response.PaginatedResponse{
-        Page:       page,
-        Result:     results,
-        TotalPage:  totalPage,
-        TotalItems: int(totalItems),
-    }
+	pagination := response.PaginatedResponse{
+		Page:       page,
+		Result:     results,
+		TotalPage:  totalPage,
+		TotalItems: int(totalItems),
+	}
 
-    return pagination, nil
+	return pagination, nil
 }

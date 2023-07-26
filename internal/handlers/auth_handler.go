@@ -7,11 +7,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func LoginHandler(c *gin.Context) {
+type AuthHandler struct {
+    userRepo repositories.UserRepository
+}
+
+func NewAuthHandler(repo repositories.UserRepository) *AuthHandler {
+    return &AuthHandler{userRepo: repo}
+}
+
+func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	email := c.PostForm("email")
 	password := c.PostForm("password")
 
-	result, err := repositories.GetUserByEmail(email)
+	result, err := h.userRepo.GetUserByEmail(email)
 
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
@@ -31,7 +39,7 @@ func LoginHandler(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "login success"})
 }
 
-func LogoutHandler(c *gin.Context) {
+func (h *AuthHandler) LogoutHandler(c *gin.Context) {
     sessions := sessions.Default(c)
     sessions.Delete("user_id")
     sessions.Save()

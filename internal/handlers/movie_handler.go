@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/masfuulaji/go-movie-db/internal/models"
@@ -37,7 +38,9 @@ func GetMovieHandler(c *gin.Context) {
 }
 
 func GetAllMoviesHandler(c *gin.Context) {
-    movies, err := repositories.GetAllMovies()
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+    movies, err := repositories.GetAllMovies(page, limit)
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
