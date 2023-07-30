@@ -4,11 +4,21 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/masfuulaji/go-movie-db/internal/models"
 	"github.com/masfuulaji/go-movie-db/internal/repositories"
 )
 
-func CreateGenreHandler(c *gin.Context) {
+type GenreHandler struct {
+    repo repositories.GenreRepository
+    Validate *validator.Validate
+}
+
+func NewGenreHandler(repo repositories.GenreRepository, validate *validator.Validate) *GenreHandler {
+    return &GenreHandler{repo: repo, Validate: validate}
+}
+
+func (h *GenreHandler) CreateGenreHandler(c *gin.Context) {
     var genre models.Genre
     err := c.BindJSON(&genre)
     if err != nil {
@@ -16,7 +26,13 @@ func CreateGenreHandler(c *gin.Context) {
         return
     }
 
-    err = repositories.CreateGenre(genre)
+    err = h.Validate.Struct(genre)
+    if err != nil {
+        c.JSON(400, gin.H{"error": err.Error()})
+        return
+    }
+
+    err = h.repo.CreateGenre(genre)
     if err != nil {
         c.JSON(400, gin.H{"error": err.Error()})
         return
@@ -25,10 +41,10 @@ func CreateGenreHandler(c *gin.Context) {
     c.JSON(200, gin.H{"message": "Genre created"})
 }
 
-func GetGenreHandler(c *gin.Context) {
+func (h *GenreHandler) GetGenreHandler(c *gin.Context) {
     genreID := c.Param("genre_id")
 
-    genre, err := repositories.GetGenreById(genreID)
+    genre, err := h.repo.GetGenreById(genreID)
     if err != nil {
         c.JSON(400, gin.H{"error": err.Error()})
         return
@@ -37,11 +53,11 @@ func GetGenreHandler(c *gin.Context) {
     c.JSON(200, genre)
 }
 
-func GetAllGenresHandler(c *gin.Context) {
+func (h *GenreHandler) GetAllGenresHandler(c *gin.Context) {
     page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
     limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
-    genres, err := repositories.GetAllGenres(page, limit)
+    genres, err := h.repo.GetAllGenres(page, limit)
     if err != nil {
         c.JSON(400, gin.H{"error": err.Error()})
         return
@@ -50,7 +66,7 @@ func GetAllGenresHandler(c *gin.Context) {
     c.JSON(200, genres)
 }
 
-func UpdateGenreHandler(c *gin.Context) {
+func (h *GenreHandler) UpdateGenreHandler(c *gin.Context) {
     var genre models.Genre
     genreID := c.Param("genre_id")
 
@@ -60,7 +76,13 @@ func UpdateGenreHandler(c *gin.Context) {
         return
     }
 
-    result, err := repositories.UpdateGenre(genreID, genre)
+    err = h.Validate.Struct(genre)
+    if err != nil {
+        c.JSON(400, gin.H{"error": err.Error()})
+        return
+    }
+
+    result, err := h.repo.UpdateGenre(genreID, genre)
     if err != nil {
         c.JSON(400, gin.H{"error": err.Error()})
         return
@@ -69,10 +91,10 @@ func UpdateGenreHandler(c *gin.Context) {
     c.JSON(200, result)
 }
 
-func DeleteGenreHandler(c *gin.Context) {
+func (h *GenreHandler) DeleteGenreHandler(c *gin.Context) {
     genreID := c.Param("genre_id")
 
-    err := repositories.DeleteGenre(genreID)
+    err := h.repo.DeleteGenre(genreID)
     if err != nil {
         c.JSON(400, gin.H{"error": err.Error()})
         return

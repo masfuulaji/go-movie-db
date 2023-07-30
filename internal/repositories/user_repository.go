@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/masfuulaji/go-movie-db/internal/models"
+	"github.com/masfuulaji/go-movie-db/internal/request"
 	"github.com/masfuulaji/go-movie-db/internal/response"
 	"gorm.io/gorm"
 )
@@ -14,11 +15,11 @@ var (
 )
 
 type UserRepository interface {
-	CreateUser(user models.User) error
+	CreateUser(user request.UserCreateRequest) error
 	GetAllUser(page, limit int) (response.PaginatedResponse, error)
 	GetUserById(userID string) (response.APIUser, error)
 	GetUserByEmail(email string) (models.User, error)
-	UpdateUser(userID string, user models.User) (models.User, error)
+	UpdateUser(userID string, user request.UserUpdateRequest) (models.User, error)
 	DeleteUser(userID string) error
 }
 
@@ -32,7 +33,7 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	}
 }
 
-func (c *UserRepositoryImpl) CreateUser(user models.User) error {
+func (c *UserRepositoryImpl) CreateUser(user request.UserCreateRequest) error {
 	return c.db.Create(&user).Error
 }
 
@@ -45,7 +46,7 @@ func (c *UserRepositoryImpl) GetUserByEmail(email string) (models.User, error) {
 	return user, c.db.Where("email = ?", email).First(&user).Error
 }
 
-func (c *UserRepositoryImpl) UpdateUser(userID string, user models.User) (models.User, error) {
+func (c *UserRepositoryImpl) UpdateUser(userID string, user request.UserUpdateRequest) (models.User, error) {
 	var updatedUser models.User
 	err := c.db.Model(&user).Where("id = ?", userID).Updates(user).Error
 	return updatedUser, err

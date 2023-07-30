@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/masfuulaji/go-movie-db/internal/config"
 	"github.com/masfuulaji/go-movie-db/internal/handlers"
 	"github.com/masfuulaji/go-movie-db/internal/helper"
@@ -12,6 +13,8 @@ import (
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
     db := config.InitDB()
+
+    validator := validator.New()
 
     router.Use(helper.ErrorHandler())
 
@@ -37,7 +40,7 @@ func SetupRouter() *gin.Engine {
 	}
 
 
-    userHandler := handlers.NewUserHandler(repositories.NewUserRepository(db))
+    userHandler := handlers.NewUserHandler(repositories.NewUserRepository(db), validator)
 	user := router.Group("/user")
 	// user.Use(middleware.AuthMiddleware())
 	{
@@ -48,31 +51,34 @@ func SetupRouter() *gin.Engine {
 		user.DELETE("/:userID", userHandler.DeleteUserHandler)
 	}
 
+    collectionHandler := handlers.NewCollectionHandler(repositories.NewCollectionRepository(db), validator)
     collection := router.Group("/collection")
     {
-        collection.GET("/", handlers.GetAllCollectionsHandler)
-        collection.POST("/", handlers.CreateCollectionHandler)
-        collection.GET("/:collectionID", handlers.GetCollectionHandler)
-        collection.PUT("/:collectionID", handlers.UpdateCollectionHandler)
-        collection.DELETE("/:collectionID", handlers.DeleteCollectionHandler)
+        collection.GET("/", collectionHandler.GetAllCollectionsHandler)
+        collection.POST("/", collectionHandler.CreateCollectionHandler)
+        collection.GET("/:collectionID", collectionHandler.GetCollectionHandler)
+        collection.PUT("/:collectionID", collectionHandler.UpdateCollectionHandler)
+        collection.DELETE("/:collectionID", collectionHandler.DeleteCollectionHandler)
     }
 
+    movieHandler := handlers.NewMovieHandler(repositories.NewMovieRepository(db), validator)
     movie := router.Group("/movie")
     {
-        movie.GET("/", handlers.GetAllMoviesHandler)
-        movie.POST("/", handlers.CreateMovieHandler)
-        movie.GET("/:movieID", handlers.GetMovieHandler)
-        movie.PUT("/:movieID", handlers.UpdateMovieHandler)
-        movie.DELETE("/:movieID", handlers.DeleteMovieHandler)
+        movie.GET("/", movieHandler.GetAllMoviesHandler)
+        movie.POST("/", movieHandler.CreateMovieHandler)
+        movie.GET("/:movieID", movieHandler.GetMovieHandler)
+        movie.PUT("/:movieID", movieHandler.UpdateMovieHandler)
+        movie.DELETE("/:movieID", movieHandler.DeleteMovieHandler)
     }
 
+    genreHandler := handlers.NewGenreHandler(repositories.NewGenreRepository(db), validator)
     genre := router.Group("/genre")
     {
-        genre.GET("/", handlers.GetAllGenresHandler)
-        genre.POST("/", handlers.CreateGenreHandler)
-        genre.GET("/:genreID", handlers.GetGenreHandler)
-        genre.PUT("/:genreID", handlers.UpdateGenreHandler)
-        genre.DELETE("/:genreID", handlers.DeleteGenreHandler)
+        genre.GET("/", genreHandler.GetAllGenresHandler)
+        genre.POST("/", genreHandler.CreateGenreHandler)
+        genre.GET("/:genreID", genreHandler.GetGenreHandler)
+        genre.PUT("/:genreID", genreHandler.UpdateGenreHandler)
+        genre.DELETE("/:genreID", genreHandler.DeleteGenreHandler)
     }
 
 	return router

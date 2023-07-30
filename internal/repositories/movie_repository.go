@@ -3,9 +3,9 @@ package repositories
 import (
 	"math"
 
-	"github.com/masfuulaji/go-movie-db/internal/config"
 	"github.com/masfuulaji/go-movie-db/internal/models"
 	"github.com/masfuulaji/go-movie-db/internal/response"
+	"gorm.io/gorm"
 )
 
 
@@ -14,27 +14,45 @@ var (
     movie  models.Movie
 )
 
-func CreateMovie(movie models.Movie) error {
-    return config.DB.Create(&movie).Error
+type MovieRepository interface {
+    CreateMovie(movie models.Movie) error
+    GetAllMovies(page, limit int) (response.PaginatedResponse, error)
+    GetMovieById(movieID string) (response.APIMovie, error)
+    UpdateMovie(movieID string, movie models.Movie) (models.Movie, error)
+    DeleteMovie(movieID string) error
 }
 
-func GetMovieById(movieID string) (response.APIMovie, error) {
+type MovieRepositoryImpl struct {
+    db *gorm.DB
+}
+
+func NewMovieRepository(db *gorm.DB) MovieRepository {
+    return &MovieRepositoryImpl{
+        db: db,
+    }
+}
+
+func (c *MovieRepositoryImpl) CreateMovie(movie models.Movie) error {
+    return c.db.Create(&movie).Error
+}
+
+func (c *MovieRepositoryImpl) GetMovieById(movieID string) (response.APIMovie, error) {
     var result response.APIMovie
-    return result, config.DB.Where("id = ?", movieID).First(&result).Error
+    return result, c.db.Where("id = ?", movieID).First(&result).Error
 }
 
-func GetAllMovies(page, limit int) (response.PaginatedResponse, error) {
+func (c *MovieRepositoryImpl) GetAllMovies(page, limit int) (response.PaginatedResponse, error) {
     var results []response.APIMovie
     var totalItems int64
 
     offset := (page - 1) * limit
 
-    err := config.DB.Model(&movies).Offset(offset).Limit(limit).Find(&results).Error
+    err := c.db.Model(&movies).Offset(offset).Limit(limit).Find(&results).Error
     if err != nil {
         return response.PaginatedResponse{}, err
     }
 
-    err = config.DB.Model(&movies).Count(&totalItems).Error
+    err = c.db.Model(&movies).Count(&totalItems).Error
     if err != nil {
         return response.PaginatedResponse{}, err
     }
@@ -51,14 +69,14 @@ func GetAllMovies(page, limit int) (response.PaginatedResponse, error) {
     return pagination, nil
 }
 
-func UpdateMovie(movieID string, movie models.Movie) (models.Movie, error) {
+func (c *MovieRepositoryImpl) UpdateMovie(movieID string, movie models.Movie) (models.Movie, error) {
     var updatedMovie models.Movie
-    err := config.DB.Model(&movie).Where("id = ?", movieID).Updates(movie).Error
+    err := c.db.Model(&movie).Where("id = ?", movieID).Updates(movie).Error
     return updatedMovie, err
 }
 
-func DeleteMovie(movieID string) error {
-    return config.DB.Delete(&models.Movie{}, movieID).Error
+func (c *MovieRepositoryImpl) DeleteMovie(movieID string) error {
+    return c.db.Delete(&models.Movie{}, movieID).Error
 }
 
 

@@ -3,9 +3,9 @@ package repositories
 import (
 	"math"
 
-	"github.com/masfuulaji/go-movie-db/internal/config"
 	"github.com/masfuulaji/go-movie-db/internal/models"
 	"github.com/masfuulaji/go-movie-db/internal/response"
+	"gorm.io/gorm"
 )
 
 var (
@@ -13,26 +13,44 @@ var (
 	genre  models.Genre
 )
 
-func CreateGenre(genre models.Genre) error {
-	return config.DB.Create(&genre).Error
+type GenreRepository interface {
+    CreateGenre(genre models.Genre) error
+    GetGenreById(genreID string) (response.APIGenre, error)
+    GetAllGenres(page, limit int) (response.PaginatedResponse, error)
+    UpdateGenre(genreID string, genre models.Genre) (models.Genre, error)
+    DeleteGenre(genreID string) error
 }
 
-func GetGenreById(genreID string) (response.APIGenre, error) {
+type GenreRepositoryImpl struct {
+    db *gorm.DB
+}
+
+func NewGenreRepository(db *gorm.DB) GenreRepository {
+    return &GenreRepositoryImpl{
+        db: db,
+    }
+}
+
+func (c *GenreRepositoryImpl) CreateGenre(genre models.Genre) error {
+	return c.db.Create(&genre).Error
+}
+
+func (c *GenreRepositoryImpl) GetGenreById(genreID string) (response.APIGenre, error) {
 	var result response.APIGenre
-	return result, config.DB.Where("id = ?", genreID).First(&result).Error
+	return result, c.db.Where("id = ?", genreID).First(&result).Error
 }
 
-func GetAllGenres(page, limit int) (response.PaginatedResponse, error) {
+func (c *GenreRepositoryImpl) GetAllGenres(page, limit int) (response.PaginatedResponse, error) {
 	var results []response.APIGenre
     var totalItems int64
 
     offset := (page - 1) * limit
-	err := config.DB.Model(&genres).Offset(offset).Limit(limit).Find(&results).Error
+	err := c.db.Model(&genres).Offset(offset).Limit(limit).Find(&results).Error
     if err != nil {
         return response.PaginatedResponse{}, err
     }
 
-    err = config.DB.Model(&genres).Count(&totalItems).Error
+    err = c.db.Model(&genres).Count(&totalItems).Error
     if err != nil {
         return response.PaginatedResponse{}, err
     }
@@ -49,12 +67,12 @@ func GetAllGenres(page, limit int) (response.PaginatedResponse, error) {
     return pagination, nil
 }
 
-func UpdateGenre(genreID string, genre models.Genre) (models.Genre, error) {
+func (c *GenreRepositoryImpl) UpdateGenre(genreID string, genre models.Genre) (models.Genre, error) {
 	var updatedGenre models.Genre
-	err := config.DB.Model(&genre).Where("id = ?", genreID).Updates(genre).Error
+	err := c.db.Model(&genre).Where("id = ?", genreID).Updates(genre).Error
 	return updatedGenre, err
 }
 
-func DeleteGenre(genreID string) error {
-	return config.DB.Delete(&models.Genre{}, genreID).Error
+func (c *GenreRepositoryImpl) DeleteGenre(genreID string) error {
+	return c.db.Delete(&models.Genre{}, genreID).Error
 }
