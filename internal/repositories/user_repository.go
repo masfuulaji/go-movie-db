@@ -2,7 +2,10 @@ package repositories
 
 import (
 	"math"
+	"os"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/masfuulaji/go-movie-db/internal/models"
 	"github.com/masfuulaji/go-movie-db/internal/request"
 	"github.com/masfuulaji/go-movie-db/internal/response"
@@ -21,6 +24,7 @@ type UserRepository interface {
 	GetUserByEmail(email string) (models.User, error)
 	UpdateUser(userID string, user request.UserUpdateRequest) (models.User, error)
 	DeleteUser(userID string) error
+    GenerateToken(userID int) (string, error)
 }
 
 type UserRepositoryImpl struct {
@@ -81,4 +85,21 @@ func (c *UserRepositoryImpl) GetAllUser(page, limit int) (response.PaginatedResp
 	}
 
 	return pagination, nil
+}
+
+func (c *UserRepositoryImpl) GenerateToken(userID int) (string, error) {
+    secret := os.Getenv("JWT_SECRET")
+
+    token := jwt.New(jwt.SigningMethodHS256)
+
+    claims := token.Claims.(jwt.MapClaims)
+    claims["user_id"] = userID
+    claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+
+    tokenString, err := token.SignedString([]byte(secret))
+    if err != nil {
+        return "", err
+    }
+
+    return tokenString, nil
 }

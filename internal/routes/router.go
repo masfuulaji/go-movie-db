@@ -42,7 +42,6 @@ func SetupRouter() *gin.Engine {
 
     userHandler := handlers.NewUserHandler(repositories.NewUserRepository(db), validator)
 	user := router.Group("/user")
-	// user.Use(middleware.AuthMiddleware())
 	{
 		user.GET("/", userHandler.GetAllUserHandler)
 		user.POST("/", userHandler.CreateUserHandler)
