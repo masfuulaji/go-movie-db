@@ -21,7 +21,7 @@ func ErrorHandler() gin.HandlerFunc {
 			}
 		}()
 
-		// Continue processing other middlewares and handlers
+		// Continue processing other middlewares and handler
 		c.Next()
 
 		// If no routes match the request, handle the 404 Not Found error
